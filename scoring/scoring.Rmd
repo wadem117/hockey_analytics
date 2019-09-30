@@ -1,0 +1,157 @@
+---
+title: "scoring"
+author: "Michael Wade"
+date: "9/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(readr)
+library(tidyverse)
+scoring <- read_csv("scoring - Sheet1.csv")
+head(scoring)
+
+scoring <- scoring %>% 
+  mutate(pts=round((pts_60/60)*toi)) %>% 
+  select(player,pts,everything())
+```
+
+```{r}
+scoring <- scoring %>% 
+  mutate(season=as.character(season))
+
+df <- scoring %>% 
+  group_by(player_disp,season) %>% 
+  summarize(season_pts=sum(pts),
+            season_pts_60=mean(pts_60),
+            season_g=sum(g_60),
+            season_g_60=mean(g_60),
+            season_a=sum(a_60),
+            season_a_60=mean(a_60),
+            season_e_toi=(mean(toi)*82)) %>% 
+  select(player_disp,season,season_e_toi,season_pts_60,season_pts,season_g_60,season_g,season_a_60,season_a) %>% 
+  filter(season_pts_60<3,season_pts_60>0,season %in% c("1617","1718","1819"))
+df
+```
+
+```{r}
+df2 <- df %>% 
+  group_by(player_disp) %>% 
+  summarize(med_season_pts_60=round(median(season_pts_60),digits=2),
+            med_season_g_60=round(median(season_g_60),digits=2),
+            med_season_a_60=round(median(season_a_60),digits=2),
+            q25_pts_60=quantile(season_pts_60,.25),
+            q75_pts_60=quantile(season_pts_60,.75),
+            q25_g_60=quantile(season_g_60,.25),
+            q75_g_60=quantile(season_g_60,.75),
+            q25_a_60=quantile(season_a_60,.25),
+            q75_a_60=quantile(season_a_60,.75))
+df2
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_season_pts_60,sum), 
+                           y=med_season_pts_60, 
+                           ymin=q25_pts_60, 
+                           ymax=q75_pts_60))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_season_pts_60),label=df2$med_season_pts_60,size=2.5)+
+  xlab("")+
+  ylab("Expected points per 60 (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_season_g_60,sum), 
+                           y=med_season_g_60, 
+                           ymin=q25_g_60, 
+                           ymax=q75_g_60))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_season_g_60),label=df2$med_season_g_60,size=2.5)+
+  xlab("")+
+  ylab("Expected goals per 60 (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_season_a_60,sum), 
+                           y=med_season_a_60, 
+                           ymin=q25_a_60, 
+                           ymax=q75_a_60))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_season_a_60),label=df2$med_season_a_60,size=2.5)+
+  xlab("")+
+  ylab("Expected assists per 60 (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+```
+
+```{r}
+df2 <- df %>% 
+  group_by(player_disp) %>% 
+  summarize(med_season_pts_60=1.25*(round(median(season_pts_60),digits=2)),
+            med_season_g_60=1.25*(round(median(season_g_60),digits=2)),
+            med_season_a_60=1.25*(round(median(season_a_60),digits=2)),
+            q25_pts_60=1.25*(quantile(season_pts_60,.25)),
+            q75_pts_60=1.25*(quantile(season_pts_60,.75)),
+            q25_g_60=1.25*(quantile(season_g_60,.25)),
+            q75_g_60=1.25*(quantile(season_g_60,.75)),
+            q25_a_60=1.25*(quantile(season_a_60,.25)),
+            q75_a_60=1.25*(quantile(season_a_60,.75)),
+            med_season_toi=median(season_e_toi),
+            q25_toi=quantile(season_e_toi,.25),
+            q75_toi=quantile(season_e_toi,.75)) %>% 
+  mutate(med_g_adj=(round(med_season_g_60*(med_season_toi/82),digits=2))) %>% 
+  mutate(q25_g_adj=q25_g_60*(q25_toi/82)) %>% 
+  mutate(q75_g_adj=q75_g_60*(q75_toi/82)) %>% 
+  mutate(med_a_adj=(round(med_season_a_60*(med_season_toi/82),digits=2))) %>% 
+  mutate(q25_a_adj=q25_a_60*(q25_toi/82)) %>% 
+  mutate(q75_a_adj=q75_a_60*(q75_toi/82)) %>% 
+  mutate(med_pts_adj=(round(med_season_pts_60*(med_season_toi/82),digits=2))) %>% 
+  mutate(q25_pts_adj=q25_pts_60*(q25_toi/82)) %>% 
+  mutate(q75_pts_adj=q75_pts_60*(q75_toi/82)) 
+df2
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_pts_adj,sum), 
+                           y=med_pts_adj, 
+                           ymin=q25_pts_adj, 
+                           ymax=q75_pts_adj))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_pts_adj),label=df2$med_pts_adj,size=2.5)+
+  xlab("")+
+  ylab("Expected points (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_g_adj,sum), 
+                           y=med_g_adj, 
+                           ymin=q25_g_adj, 
+                           ymax=q75_g_adj))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_g_adj),label=df2$med_g_adj,size=2.5)+
+  xlab("")+
+  ylab("Expected goals (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_a_adj,sum), 
+                           y=med_a_adj, 
+                           ymin=q25_a_adj, 
+                           ymax=q75_a_adj))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_a_adj),label=df2$med_a_adj,size=2.5)+
+  xlab("")+
+  ylab("Expected assists (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
+
+```
+
+```{r}
+df_pts <- df %>% 
+  group_by(player_disp) %>% 
+  summarize(avg_pts = mean(season_pts))
+
+df_new <- scoring %>% 
+  group_by(player_disp,season) %>% 
+  summarize(season_gp=n(),season_pts=sum(pts)) %>% 
+  mutate(full_season_pts=(season_pts/season_gp)*82) %>% 
+  summarize(season_avg=mean(full_season_pts))
+df_new
+
+df2 %>% 
+  mutate(season_avg=df_new$season_avg) %>% 
+  mutate(ratio=med_pts_adj/season_avg) %>% 
+  select(player_disp,med_pts_adj,season_avg,ratio)
+```
+
