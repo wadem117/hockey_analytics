@@ -6,7 +6,6 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library(readr)
 library(tidyverse)
 scoring <- read_csv("scoring - Sheet1.csv")
 head(scoring)
@@ -153,5 +152,31 @@ df2 %>%
   mutate(season_avg=df_new$season_avg) %>% 
   mutate(ratio=med_pts_adj/season_avg) %>% 
   select(player_disp,med_pts_adj,season_avg,ratio)
+```
+
+```{r}
+df2
+```
+
+```{r}
+pts <- c(2,5,4,1,7,0,4,7,4,0,4,2,3,4)
+gp <- c(8,8,8,8,6,0,8,8,8,1,8,5,8,8)
+pts_season <- (pts/gp)*82
+
+df2 <- df2 %>% 
+  mutate(pts_season=pts_season) %>% 
+  filter(player_disp!="F. Gaudreau")
+
+ggplot()+
+  geom_pointrange(df2, mapping=aes(x=reorder(player_disp,-med_pts_adj,sum), 
+                           y=med_pts_adj, 
+                           ymin=q25_pts_adj, 
+                           ymax=q75_pts_adj))+
+  geom_label(aes(x=df2$player_disp,y=df2$med_pts_adj),label=df2$med_pts_adj,size=2.5)+
+  geom_point(df2, mapping=aes(x=reorder(player_disp,-med_pts_adj,sum),
+                                          y=pts_season),shape=4,col="red",size=3)+
+  xlab("")+
+  ylab("Total points (5v5)")+
+  theme_classic()+theme(axis.text.x = element_text(angle=90,vjust=0.3))
 ```
 
